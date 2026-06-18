@@ -24,6 +24,12 @@
 
 # 1. Introduction : Go vs PHP
 
+Go et PHP permettent tous les deux de construire des applications web et des API, mais leur modèle d’exécution est différent. En PHP, une requête déclenche généralement l’exécution d’un script par PHP-FPM ou un serveur applicatif. En Go, l’application est compilée en un binaire qui reste actif, écoute les requêtes et conserve certaines ressources pendant toute sa durée de vie.
+
+Cette différence a des conséquences concrètes : une connexion, une variable globale ou une goroutine peut survivre après la fin d’une requête. Il faut donc penser davantage au cycle de vie de l’application, au partage de la mémoire et à l’arrêt propre du serveur.
+
+Les équivalents PHP présentés dans cette formation servent de repères, pas de traductions exactes. Une struct n’est pas une classe, un package n’est pas seulement un namespace et une goroutine n’est pas un processus. L’objectif est de partir de concepts connus pour construire progressivement un modèle mental adapté à Go.
+
 ## 1.1 Différences principales
 
 | Sujet | Go | PHP |
@@ -52,11 +58,15 @@ func main() {
 }
 ```
 
+**Explication :** `package main` indique que le package produit un programme exécutable, et `func main()` en est le point d’entrée. Ce bloc assemble les dépendances nécessaires à « Go » puis conserve le processus actif jusqu’à la fin du travail. Comme l’application Go vit plus longtemps qu’une requête PHP-FPM, les ressources créées ici doivent avoir un cycle de vie et un arrêt maîtrisés.
+
 Exécution :
 
 ```bash
 go run main.go
 ```
+
+**Explication :** `go run` compile dans un emplacement temporaire puis démarre le programme, ce qui est pratique pendant l’apprentissage. `go build` produit au contraire un binaire réutilisable et déployable sans installer Go sur la machine cible. Dans les deux cas, les erreurs de syntaxe et de types sont détectées avant le démarrage.
 
 Compilation :
 
@@ -64,6 +74,8 @@ Compilation :
 go build -o app
 ./app
 ```
+
+**Explication :** `go run` compile dans un emplacement temporaire puis démarre le programme, ce qui est pratique pendant l’apprentissage. `go build` produit au contraire un binaire réutilisable et déployable sans installer Go sur la machine cible. Dans les deux cas, les erreurs de syntaxe et de types sont détectées avant le démarrage.
 
 ### PHP équivalent
 
@@ -73,11 +85,15 @@ go build -o app
 echo "Hello PHP\n";
 ```
 
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
+
 Exécution :
 
 ```bash
 php index.php
 ```
+
+**Explication :** Cette commande sert à exécuter ou vérifier l’étape décrite dans « PHP équivalent ». Lancez-la depuis la racine du projet afin que Go ou PHP retrouve sa configuration et ses dépendances. Observez la sortie et le code de retour : une commande silencieuse avec un statut nul signifie généralement que l’étape a réussi.
 
 ---
 
@@ -100,6 +116,12 @@ En PHP :
 
 # 2. Fichiers, modules, librairies et fonctionnement de Go
 
+Un projet Go s’organise autour de trois niveaux. Un fichier contient du code source, plusieurs fichiers d’un même dossier forment généralement un package, et un module regroupe les packages appartenant au projet. Le module fournit aussi le chemin utilisé dans les imports.
+
+Le fichier `go.mod` joue un rôle comparable à celui de `composer.json`, mais l’outil `go` couvre également la compilation, les tests, le formatage et la gestion des dépendances. Il est donc au centre du workflow quotidien.
+
+La librairie standard est volontairement riche. Avant d’ajouter une dépendance, il est utile de vérifier si `net/http`, `encoding/json`, `context`, `time` ou un autre package standard répond déjà au besoin. Cette approche limite la complexité du projet et facilite les mises à jour.
+
 ## 2.1 Créer un module Go
 
 Un module Go est l’équivalent approximatif d’un projet Composer en PHP.
@@ -112,6 +134,8 @@ cd go-training
 go mod init example.com/go-training
 ```
 
+**Explication :** La commande `go mod init` crée le fichier `go.mod` et fixe le chemin canonique du module. Ce chemin préfixera les imports internes, par exemple `example.com/go-training/internal/product`. Dans un vrai dépôt, utilisez généralement l’URL du dépôt comme nom de module.
+
 Structure :
 
 ```text
@@ -119,6 +143,8 @@ go-training/
 ├── go.mod
 └── main.go
 ```
+
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « Go ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
 
 Contenu de `go.mod` :
 
@@ -128,6 +154,8 @@ module example.com/go-training
 go 1.23
 ```
 
+**Explication :** La directive `module` fixe l’identité du projet et le préfixe de ses imports internes. La directive `go` indique la version de langage minimale attendue par les outils, sans installer ni verrouiller elle-même le compilateur. Les dépendances externes seront ajoutées dans ce fichier et leurs sommes de contrôle seront conservées dans `go.sum`.
+
 ### PHP équivalent
 
 ```bash
@@ -136,6 +164,8 @@ cd php-training
 composer init
 ```
 
+**Explication :** Ces commandes montrent le workflow PHP équivalent autour de Composer. Composer gère principalement les dépendances et l’autoload, alors que la commande `go` regroupe aussi compilation, formatage et tests. Le parallèle aide à se repérer, mais les deux outils n’ont pas exactement le même périmètre.
+
 Structure :
 
 ```text
@@ -143,6 +173,8 @@ php-training/
 ├── composer.json
 └── src/
 ```
+
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « PHP équivalent ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
 
 Contenu simplifié de `composer.json` :
 
@@ -156,6 +188,8 @@ Contenu simplifié de `composer.json` :
   }
 }
 ```
+
+**Explication :** Ce `composer.json` configure l’autoload PSR-4 : les classes du namespace `App\\` sont recherchées dans `src/`. Le parallèle avec `go.mod` est utile pour comprendre la racine du projet, mais Go n’utilise pas d’autoloader à l’exécution : les imports sont résolus et vérifiés lors de la compilation.
 
 ---
 
@@ -173,6 +207,8 @@ func main() {
 }
 ```
 
+**Explication :** `package main` indique que le package produit un programme exécutable, et `func main()` en est le point d’entrée. Ce bloc assemble les dépendances nécessaires à « Go » puis conserve le processus actif jusqu’à la fin du travail. Comme l’application Go vit plus longtemps qu’une requête PHP-FPM, les ressources créées ici doivent avoir un cycle de vie et un arrêt maîtrisés.
+
 ### PHP équivalent
 
 ```php
@@ -180,6 +216,8 @@ func main() {
 
 echo "Application started\n";
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -194,6 +232,8 @@ go mod tidy          # nettoyer les dépendances
 go env               # afficher l'environnement Go
 ```
 
+**Explication :** Cette commande compile puis exécute les tests Go. Le motif `./...` inclut le package courant et tous ses sous-packages, ce qui convient à la validation complète d’un module. Une erreur de compilation interrompt les tests : le typage fait donc partie du premier niveau de vérification.
+
 ### PHP équivalent approximatif
 
 ```bash
@@ -203,6 +243,8 @@ composer dump-autoload          # régénérer l'autoload
 vendor/bin/phpunit             # lancer les tests
 vendor/bin/php-cs-fixer fix    # formater le code si configuré
 ```
+
+**Explication :** Ces commandes montrent le workflow PHP équivalent autour de Composer. Composer gère principalement les dépendances et l’autoload, alors que la commande `go` regroupe aussi compilation, formatage et tests. Le parallèle aide à se repérer, mais les deux outils n’ont pas exactement le même périmètre.
 
 ---
 
@@ -221,6 +263,8 @@ import "errors"    // erreurs
 import "context"   // contexte, timeout, annulation
 ```
 
+**Explication :** Les imports déclarent les packages utilisés par ce fichier. Leur chemin identifie le package, tandis que son nom qualifie les symboles appelés, par exemple `fmt.Println`. Go refuse les imports inutilisés, ce qui empêche l’accumulation de dépendances mortes.
+
 ### PHP équivalent
 
 En PHP, beaucoup de fonctionnalités sont natives, mais les projets modernes utilisent souvent des composants :
@@ -231,9 +275,17 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Psr\Log\LoggerInterface;
 ```
 
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
+
 ---
 
 # 3. Variables, types, tableaux, slices, maps et structs
+
+Le typage statique de Go oblige à définir clairement la forme des données. De nombreuses incohérences sont ainsi détectées pendant la compilation, avant qu’une requête n’atteigne l’application en production.
+
+En PHP, un tableau peut représenter une liste, un dictionnaire ou une structure métier improvisée. Go sépare ces usages : un array possède une taille fixe, une slice représente une séquence dynamique, une map associe des clés à des valeurs et une struct décrit explicitement une donnée.
+
+Dans un backend, les structs sont omniprésentes. Elles peuvent représenter une entité métier, le corps d’une requête HTTP, la réponse envoyée au frontend ou la configuration de l’application. Donner un rôle précis à chaque struct évite de mélanger le modèle interne et le contrat public de l’API.
 
 ## 3.1 Déclaration de variables
 
@@ -247,6 +299,8 @@ var active bool = true
 fmt.Println(name, age, active)
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### Go : déclaration courte
 
 ```go
@@ -256,6 +310,8 @@ active := true
 
 fmt.Println(name, age, active)
 ```
+
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
 
 ### PHP équivalent
 
@@ -268,6 +324,8 @@ $active = true;
 
 echo $name . " " . $age . " " . ($active ? "true" : "false") . PHP_EOL;
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -284,6 +342,8 @@ var enabled bool = true
 fmt.Println(title, count, price, enabled)
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 ```php
@@ -296,6 +356,8 @@ $enabled = true;
 
 var_dump($title, $count, $price, $enabled);
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -311,6 +373,8 @@ var age int = 30
 
 fmt.Println(age)
 ```
+
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
 
 ### PHP équivalent avec typage
 
@@ -331,6 +395,8 @@ function displayAge(int $age): void
 displayAge($age);
 ```
 
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
+
 ---
 
 ## 3.4 Constantes
@@ -344,6 +410,8 @@ const MaxItems = 100
 fmt.Println(AppName, MaxItems)
 ```
 
+**Explication :** Ces constantes sont déterminées à la compilation et ne peuvent plus être réassignées. Go autorise des constantes non typées, dont le type concret est déduit lorsqu’elles sont utilisées. Réservez-les aux valeurs réellement immuables et stables dans le code, pas à la configuration d’un environnement.
+
 ### PHP équivalent
 
 ```php
@@ -355,6 +423,8 @@ const MAX_ITEMS = 100;
 echo APP_NAME . PHP_EOL;
 echo MAX_ITEMS . PHP_EOL;
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -373,11 +443,15 @@ var active bool
 fmt.Printf("name=%q count=%d price=%f active=%t\n", name, count, price, active)
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 Sortie :
 
 ```text
 name="" count=0 price=0.000000 active=false
 ```
+
+**Explication :** Cette sortie confirme les valeurs zéro attribuées automatiquement par Go. Une chaîne vaut `""`, un nombre vaut `0` et un booléen vaut `false` tant qu’aucune autre valeur n’est assignée. Il faut distinguer une valeur zéro valide d’une donnée réellement absente, pour laquelle un pointeur ou un type optionnel peut être nécessaire.
 
 ### PHP équivalent
 
@@ -393,6 +467,8 @@ $active = false;
 
 var_dump($name, $count, $price, $active);
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -413,6 +489,8 @@ fmt.Println(numbers)
 fmt.Println(numbers[1])
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 PHP n’a pas vraiment d’array fixe natif. Un tableau PHP est dynamique.
@@ -425,6 +503,8 @@ $numbers = [10, 20, 30];
 echo $numbers[1] . PHP_EOL;
 print_r($numbers);
 ```
+
+**Explication :** Le tableau PHP est utilisé ici comme collection flexible. Selon ses clés, il peut représenter une liste, une map ou une structure ad hoc ; Go emploie des types distincts pour chacun de ces rôles. Cette contrainte supplémentaire évite qu’une collection change accidentellement de forme au cours du programme.
 
 ---
 
@@ -443,6 +523,8 @@ fmt.Println(numbers)
 fmt.Println(len(numbers))
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ### PHP équivalent
 
 ```php
@@ -455,6 +537,8 @@ $numbers[] = 40;
 print_r($numbers);
 echo count($numbers) . PHP_EOL;
 ```
+
+**Explication :** Le tableau PHP est utilisé ici comme collection flexible. Selon ses clés, il peut représenter une liste, une map ou une structure ad hoc ; Go emploie des types distincts pour chacun de ces rôles. Cette contrainte supplémentaire évite qu’une collection change accidentellement de forme au cours du programme.
 
 ---
 
@@ -471,6 +555,8 @@ users = append(users, "Bob")
 fmt.Println(users)
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ### PHP équivalent
 
 ```php
@@ -483,6 +569,8 @@ $users[] = "Bob";
 
 print_r($users);
 ```
+
+**Explication :** Le tableau PHP est utilisé ici comme collection flexible. Selon ses clés, il peut représenter une liste, une map ou une structure ad hoc ; Go emploie des types distincts pour chacun de ces rôles. Cette contrainte supplémentaire évite qu’une collection change accidentellement de forme au cours du programme.
 
 ---
 
@@ -501,6 +589,8 @@ fmt.Println("length:", len(users))
 fmt.Println("capacity:", cap(users))
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ### PHP équivalent
 
 PHP ne gère pas explicitement la capacité d’un tableau.
@@ -516,6 +606,8 @@ $users[] = "Bob";
 echo count($users) . PHP_EOL;
 ```
 
+**Explication :** Le tableau PHP est utilisé ici comme collection flexible. Selon ses clés, il peut représenter une liste, une map ou une structure ad hoc ; Go emploie des types distincts pour chacun de ces rôles. Cette contrainte supplémentaire évite qu’une collection change accidentellement de forme au cours du programme.
+
 ---
 
 ## 3.10 Parcourir une slice
@@ -530,6 +622,8 @@ for index, user := range users {
 }
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ### PHP équivalent
 
 ```php
@@ -541,6 +635,8 @@ foreach ($users as $index => $user) {
     echo $index . " " . $user . PHP_EOL;
 }
 ```
+
+**Explication :** `foreach` joue ici le même rôle que `range` en Go : il fournit la clé ou l’index et la valeur courante. Le tableau PHP peut mélanger usages de liste et de dictionnaire, alors que Go distingue slices et maps. Cette séparation rend l’intention et les types accessibles au compilateur.
 
 ---
 
@@ -562,6 +658,8 @@ fmt.Println(scores["Alice"])
 fmt.Println(scores)
 ```
 
+**Explication :** La map associe des clés et des valeurs de types fixes. Une lecture peut retourner la valeur zéro même si la clé n’existe pas ; la forme `value, ok := m[key]` permet de distinguer ces deux cas. Une map n’est pas sûre pour des écritures concurrentes et son ordre d’itération n’est pas garanti.
+
 ### PHP équivalent
 
 ```php
@@ -577,6 +675,8 @@ $scores["Charlie"] = 20;
 echo $scores["Alice"] . PHP_EOL;
 print_r($scores);
 ```
+
+**Explication :** Le tableau PHP est utilisé ici comme collection flexible. Selon ses clés, il peut représenter une liste, une map ou une structure ad hoc ; Go emploie des types distincts pour chacun de ces rôles. Cette contrainte supplémentaire évite qu’une collection change accidentellement de forme au cours du programme.
 
 ---
 
@@ -598,6 +698,8 @@ if !exists {
 }
 ```
 
+**Explication :** La map associe des clés et des valeurs de types fixes. Une lecture peut retourner la valeur zéro même si la clé n’existe pas ; la forme `value, ok := m[key]` permet de distinguer ces deux cas. Une map n’est pas sûre pour des écritures concurrentes et son ordre d’itération n’est pas garanti.
+
 ### PHP équivalent
 
 ```php
@@ -613,6 +715,8 @@ if (!array_key_exists("Bob", $scores)) {
     echo $scores["Bob"] . PHP_EOL;
 }
 ```
+
+**Explication :** Le tableau PHP est utilisé ici comme collection flexible. Selon ses clés, il peut représenter une liste, une map ou une structure ad hoc ; Go emploie des types distincts pour chacun de ces rôles. Cette contrainte supplémentaire évite qu’une collection change accidentellement de forme au cours du programme.
 
 ---
 
@@ -638,6 +742,8 @@ user := User{
 fmt.Println(user.Name)
 ```
 
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
+
 ### PHP équivalent
 
 ```php
@@ -656,6 +762,8 @@ $user = new User(1, "Alice", "alice@example.com");
 
 echo $user->name . PHP_EOL;
 ```
+
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
 
 ---
 
@@ -678,6 +786,8 @@ product := Product{Name: "Keyboard", Price: 49.99, Stock: 5}
 
 fmt.Println(product.IsAvailable())
 ```
+
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
 
 ### PHP équivalent
 
@@ -703,6 +813,8 @@ $product = new Product("Keyboard", 49.99, 5);
 var_dump($product->isAvailable());
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 ## 3.15 Pointeurs : introduction
@@ -722,6 +834,8 @@ Rename(user, "Bob")
 fmt.Println(user.Name) // Alice
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### Go avec pointeur
 
 ```go
@@ -734,6 +848,8 @@ Rename(&user, "Bob")
 
 fmt.Println(user.Name) // Bob
 ```
+
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
 
 ### PHP équivalent
 
@@ -761,9 +877,17 @@ renameUser($user, "Bob");
 echo $user->name . PHP_EOL; // Bob
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 # 4. Fonctions en Go et équivalents PHP
+
+Une fonction Go rend ses entrées et ses sorties visibles dans sa signature. Elle peut retourner plusieurs valeurs, ce qui permet notamment de renvoyer un résultat accompagné d’une erreur. Ce mécanisme remplace une grande partie des exceptions utilisées dans les applications PHP.
+
+Une erreur Go est une valeur normale. L’appelant doit décider s’il peut la traiter, l’enrichir avec du contexte ou la transmettre au niveau supérieur. Cette gestion explicite ajoute parfois quelques lignes, mais rend le chemin d’échec lisible et prévisible.
+
+Les méthodes sont des fonctions associées à un type grâce à un receiver. Un receiver par valeur reçoit une copie ; un receiver par pointeur peut modifier l’instance d’origine. Le choix dépend donc du comportement attendu, pas seulement d’une préférence de syntaxe.
 
 ## 4.1 Fonction simple
 
@@ -777,6 +901,8 @@ func Add(a int, b int) int {
 result := Add(2, 3)
 fmt.Println(result)
 ```
+
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
 
 ### PHP équivalent
 
@@ -792,6 +918,8 @@ $result = add(2, 3);
 echo $result . PHP_EOL;
 ```
 
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
+
 ---
 
 ## 4.2 Paramètres du même type
@@ -804,6 +932,8 @@ func Multiply(a, b int) int {
 }
 ```
 
+**Explication :** La signature rend explicites les paramètres et les valeurs retournées par cette fonction. Go peut retourner plusieurs valeurs, notamment un résultat et une erreur, ce qui rend le chemin d’échec visible chez l’appelant. Gardez la fonction centrée sur une responsabilité et préférez des paramètres métier à des dépendances globales.
+
 ### PHP équivalent
 
 ```php
@@ -814,6 +944,8 @@ function multiply(int $a, int $b): int
     return $a * $b;
 }
 ```
+
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
 
 ---
 
@@ -839,6 +971,8 @@ if err != nil {
 fmt.Println(result)
 ```
 
+**Explication :** L’erreur est une valeur retournée avec le résultat normal. L’appelant la vérifie immédiatement, ajoute éventuellement du contexte avec `fmt.Errorf(... %w ...)`, puis décide de la traiter ou de la propager. Ne masquez pas l’erreur : son message et sa cause sont essentiels pour le diagnostic et pour la traduction vers une réponse HTTP adaptée.
+
 ### PHP équivalent avec exception
 
 ```php
@@ -860,6 +994,8 @@ try {
     echo "error: " . $e->getMessage() . PHP_EOL;
 }
 ```
+
+**Explication :** PHP signale ici l’échec avec une exception qui interrompt le flux normal jusqu’à ce qu’un `catch` la traite. Go préfère généralement retourner explicitement une valeur `error` et oblige chaque appelant à décider quoi en faire. L’équivalence est donc fonctionnelle, mais le chemin de contrôle reste différent.
 
 ---
 
@@ -883,6 +1019,8 @@ func FindUser(id int) (User, error) {
 }
 ```
 
+**Explication :** L’erreur est une valeur retournée avec le résultat normal. L’appelant la vérifie immédiatement, ajoute éventuellement du contexte avec `fmt.Errorf(... %w ...)`, puis décide de la traiter ou de la propager. Ne masquez pas l’erreur : son message et sa cause sont essentiels pour le diagnostic et pour la traduction vers une réponse HTTP adaptée.
+
 Utilisation :
 
 ```go
@@ -894,6 +1032,8 @@ if err != nil {
 
 fmt.Println(user.Name)
 ```
+
+**Explication :** L’erreur est une valeur retournée avec le résultat normal. L’appelant la vérifie immédiatement, ajoute éventuellement du contexte avec `fmt.Errorf(... %w ...)`, puis décide de la traiter ou de la propager. Ne masquez pas l’erreur : son message et sa cause sont essentiels pour le diagnostic et pour la traduction vers une réponse HTTP adaptée.
 
 ### PHP équivalent
 
@@ -917,6 +1057,8 @@ try {
 }
 ```
 
+**Explication :** PHP signale ici l’échec avec une exception qui interrompt le flux normal jusqu’à ce qu’un `catch` la traite. Go préfère généralement retourner explicitement une valeur `error` et oblige chaque appelant à décider quoi en faire. L’équivalence est donc fonctionnelle, mais le chemin de contrôle reste différent.
+
 ---
 
 ## 4.5 Fonction privée ou publique
@@ -935,6 +1077,8 @@ func PublicFunction() {
 }
 ```
 
+**Explication :** La signature rend explicites les paramètres et les valeurs retournées par cette fonction. Go peut retourner plusieurs valeurs, notamment un résultat et une erreur, ce qui rend le chemin d’échec visible chez l’appelant. Gardez la fonction centrée sur une responsabilité et préférez des paramètres métier à des dépendances globales.
+
 ### PHP équivalent
 
 ```php
@@ -952,6 +1096,8 @@ class Example
 }
 ```
 
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
+
 ---
 
 ## 4.6 Fonctions anonymes
@@ -966,6 +1112,8 @@ greet := func(name string) string {
 fmt.Println(greet("Alice"))
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 ```php
@@ -977,6 +1125,8 @@ $greet = function (string $name): string {
 
 echo $greet("Alice") . PHP_EOL;
 ```
+
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
 
 ---
 
@@ -1001,6 +1151,8 @@ fmt.Println(counter()) // 2
 fmt.Println(counter()) // 3
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 ```php
@@ -1023,6 +1175,8 @@ echo $counter() . PHP_EOL; // 2
 echo $counter() . PHP_EOL; // 3
 ```
 
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
+
 ---
 
 ## 4.8 Méthodes avec receiver
@@ -1043,6 +1197,8 @@ item := CartItem{Price: 12.5, Quantity: 4}
 
 fmt.Println(item.Total())
 ```
+
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
 
 ### PHP équivalent
 
@@ -1067,9 +1223,17 @@ $item = new CartItem(12.5, 4);
 echo $item->total() . PHP_EOL;
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 # 5. Imports, packages et organisation du code
+
+Les packages définissent les frontières du code. Un package cohérent regroupe des éléments qui travaillent ensemble et expose seulement ce qui doit être utilisé par les autres parties de l’application.
+
+Il ne faut pas transposer mécaniquement chaque classe, service ou dossier Symfony en package Go. Trop de petits packages produisent des imports circulaires, dispersent les concepts et rendent la navigation difficile. Une bonne frontière correspond généralement à une responsabilité ou à un domaine fonctionnel identifiable.
+
+La visibilité repose sur la première lettre du nom : une majuscule exporte le symbole, une minuscule le garde interne au package. Cette règle encourage une API publique réduite. Le dossier `internal` renforce cette intention en empêchant l’import du code depuis l’extérieur du module autorisé.
 
 ## 5.1 Import simple
 
@@ -1085,6 +1249,8 @@ func main() {
 }
 ```
 
+**Explication :** `package main` indique que le package produit un programme exécutable, et `func main()` en est le point d’entrée. Ce bloc assemble les dépendances nécessaires à « Go » puis conserve le processus actif jusqu’à la fin du travail. Comme l’application Go vit plus longtemps qu’une requête PHP-FPM, les ressources créées ici doivent avoir un cycle de vie et un arrêt maîtrisés.
+
 ### PHP équivalent
 
 ```php
@@ -1092,6 +1258,8 @@ func main() {
 
 echo "Hello\n";
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1122,6 +1290,8 @@ func main() {
 }
 ```
 
+**Explication :** L’erreur est une valeur retournée avec le résultat normal. L’appelant la vérifie immédiatement, ajoute éventuellement du contexte avec `fmt.Errorf(... %w ...)`, puis décide de la traiter ou de la propager. Ne masquez pas l’erreur : son message et sa cause sont essentiels pour le diagnostic et pour la traduction vers une réponse HTTP adaptée.
+
 ### PHP équivalent
 
 ```php
@@ -1133,6 +1303,8 @@ $payload = [
 
 echo json_encode($payload, JSON_THROW_ON_ERROR) . PHP_EOL;
 ```
+
+**Explication :** Le code PHP transforme le JSON en tableau ou objet dynamique, puis construit la réponse. Cette souplesse réduit le code initial mais reporte plusieurs erreurs de forme à l’exécution. En Go, une struct de requête ou de réponse documente les champs attendus et permet au compilateur de vérifier leur utilisation.
 
 ---
 
@@ -1148,6 +1320,8 @@ go-training/
     └── product/
         └── product.go
 ```
+
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « 5.3 Créer un package interne ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
 
 ### Go : `internal/product/product.go`
 
@@ -1165,6 +1339,8 @@ func IsAvailable(p Product) bool {
     return p.Stock > 0
 }
 ```
+
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go : internal/product/product.go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
 
 ### Go : `main.go`
 
@@ -1189,6 +1365,8 @@ func main() {
 }
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 Structure :
@@ -1201,6 +1379,8 @@ php-training/
     └── Product/
         └── Product.php
 ```
+
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « PHP équivalent ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
 
 `src/Product/Product.php`
 
@@ -1225,6 +1405,8 @@ class Product
 }
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 `index.php`
 
 ```php
@@ -1238,6 +1420,8 @@ $product = new Product(1, "Keyboard", 49.99, 3);
 
 var_dump($product->isAvailable());
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1259,6 +1443,8 @@ type internalProductCache struct {
     items []Product
 }
 ```
+
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
 
 ### PHP équivalent
 
@@ -1282,11 +1468,19 @@ final class InternalProductCache
 }
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 En PHP, la visibilité est souvent gérée avec `public`, `private`, `protected`, mais le nom de la classe reste accessible si l’autoload la charge. En Go, la majuscule/minuscule contrôle vraiment l’export du symbole.
 
 ---
 
 # 6. Conditions, boucles, loops et range
+
+Go propose peu de constructions de contrôle, mais elles couvrent les besoins habituels d’un backend. `if` gère les décisions, `switch` simplifie les branches multiples et `for` remplace à la fois les boucles `for`, `while` et infinies de PHP.
+
+Le mot-clé `range` permet de parcourir les slices, maps, chaînes et channels. Les valeurs retournées dépendent du type parcouru : index et valeur pour une slice, clé et valeur pour une map. `_` sert à ignorer explicitement une valeur dont le programme n’a pas besoin.
+
+L’ordre de parcours d’une map n’est pas garanti. Si une réponse JSON, un test ou une règle métier exige un ordre stable, les clés ou les valeurs doivent être copiées dans une slice puis triées.
 
 ## 6.1 If simple
 
@@ -1302,6 +1496,8 @@ if age >= 18 {
 }
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 ```php
@@ -1315,6 +1511,8 @@ if ($age >= 18) {
     echo "minor\n";
 }
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1330,6 +1528,8 @@ if score := 85; score >= 50 {
 }
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 ```php
@@ -1343,6 +1543,8 @@ if ($score >= 50) {
     echo "failed\n";
 }
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1364,6 +1566,8 @@ default:
     fmt.Println("unknown")
 }
 ```
+
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
 
 ### PHP équivalent
 
@@ -1387,6 +1591,8 @@ switch ($status) {
 }
 ```
 
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
+
 ---
 
 ## 6.4 For classique
@@ -1399,6 +1605,8 @@ for i := 0; i < 5; i++ {
 }
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 ```php
@@ -1408,6 +1616,8 @@ for ($i = 0; $i < 5; $i++) {
     echo $i . PHP_EOL;
 }
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1424,6 +1634,8 @@ for count < 5 {
 }
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 ### PHP équivalent
 
 ```php
@@ -1436,6 +1648,8 @@ while ($count < 5) {
     $count++;
 }
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1450,6 +1664,8 @@ for {
 }
 ```
 
+**Explication :** `for` est l’unique mot-clé de boucle en Go : sa forme couvre les usages de `for`, `while` et boucle infinie de PHP. La condition est évaluée à chaque itération et `break` ou `continue` modifie le flux. Vérifiez toujours que la boucle possède une condition de sortie ou répond à une annulation.
+
 ### PHP équivalent
 
 ```php
@@ -1460,6 +1676,8 @@ while (true) {
     break;
 }
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1475,6 +1693,8 @@ for index, product := range products {
 }
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ### PHP équivalent
 
 ```php
@@ -1486,6 +1706,8 @@ foreach ($products as $index => $product) {
     echo $index . " " . $product . PHP_EOL;
 }
 ```
+
+**Explication :** `foreach` joue ici le même rôle que `range` en Go : il fournit la clé ou l’index et la valeur courante. Le tableau PHP peut mélanger usages de liste et de dictionnaire, alors que Go distingue slices et maps. Cette séparation rend l’intention et les types accessibles au compilateur.
 
 ---
 
@@ -1505,6 +1727,8 @@ for product, quantity := range stock {
 }
 ```
 
+**Explication :** La map associe des clés et des valeurs de types fixes. Une lecture peut retourner la valeur zéro même si la clé n’existe pas ; la forme `value, ok := m[key]` permet de distinguer ces deux cas. Une map n’est pas sûre pour des écritures concurrentes et son ordre d’itération n’est pas garanti.
+
 ### PHP équivalent
 
 ```php
@@ -1521,6 +1745,8 @@ foreach ($stock as $product => $quantity) {
 }
 ```
 
+**Explication :** `foreach` joue ici le même rôle que `range` en Go : il fournit la clé ou l’index et la valeur courante. Le tableau PHP peut mélanger usages de liste et de dictionnaire, alors que Go distingue slices et maps. Cette séparation rend l’intention et les types accessibles au compilateur.
+
 ---
 
 ## 6.9 Ignorer l’index avec `_`
@@ -1535,6 +1761,8 @@ for _, product := range products {
 }
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ### PHP équivalent
 
 ```php
@@ -1546,6 +1774,8 @@ foreach ($products as $product) {
     echo $product . PHP_EOL;
 }
 ```
+
+**Explication :** `foreach` joue ici le même rôle que `range` en Go : il fournit la clé ou l’index et la valeur courante. Le tableau PHP peut mélanger usages de liste et de dictionnaire, alors que Go distingue slices et maps. Cette séparation rend l’intention et les types accessibles au compilateur.
 
 ---
 
@@ -1576,6 +1806,8 @@ for _, product := range products {
 fmt.Println(available)
 ```
 
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
+
 ### PHP équivalent
 
 ```php
@@ -1594,9 +1826,19 @@ $available = array_filter($products, static function (array $product): bool {
 print_r($available);
 ```
 
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
+
 ---
 
 # 7. Goroutines, channels et concurrence
+
+La concurrence permet à plusieurs tâches de progresser sans être exécutées strictement l’une après l’autre. Dans un BFF, elle peut réduire la latence lorsqu’une réponse dépend de plusieurs services distants indépendants.
+
+Une goroutine est légère, mais elle n’est pas gratuite. Elle doit avoir une condition de fin, respecter l’annulation de la requête et transmettre son résultat ou son erreur. Une goroutine qui reste bloquée après le départ du client peut provoquer une fuite de ressources.
+
+Les channels servent à transmettre des valeurs et à synchroniser des goroutines. Ils ne remplacent pas automatiquement les mutex : un mutex est souvent plus simple pour protéger un état partagé, tandis qu’un channel convient lorsqu’on veut modéliser un échange de données.
+
+`context.Context` transporte les délais et l’annulation à travers les couches. Lorsqu’un client ferme la connexion ou qu’un timeout expire, les appels HTTP, les requêtes SQL et les traitements associés doivent pouvoir s’arrêter rapidement.
 
 ## 7.1 Goroutine simple
 
@@ -1623,6 +1865,8 @@ func sayHello() {
 }
 ```
 
+**Explication :** Le mot-clé `go` démarre la fonction dans une goroutine et rend immédiatement la main à l’appelant. Le résultat n’est pas récupéré automatiquement : il faut utiliser un channel, un `WaitGroup` ou une abstraction de plus haut niveau pour coordonner la fin et les erreurs. Une goroutine ne doit pas survivre sans limite ni ignorer l’annulation de la requête.
+
 ### PHP équivalent approximatif
 
 PHP standard n’a pas d’équivalent direct aussi simple. On peut simuler avec un processus séparé, une queue, un worker, ou des Fibers selon le besoin.
@@ -1640,6 +1884,8 @@ echo "Hello from PHP\n";
 // - Swoole
 // - Fibers
 ```
+
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
 
 ---
 
@@ -1675,6 +1921,8 @@ func main() {
 }
 ```
 
+**Explication :** Le `WaitGroup` compte les tâches concurrentes encore actives. Chaque `Add` annonce une goroutine, chaque `Done` signale sa fin et `Wait` bloque jusqu’à ce que le compteur revienne à zéro. Placez généralement `Done` dans un `defer` pour garantir son exécution même si la goroutine quitte plus tôt.
+
 ### PHP équivalent avec traitement séquentiel
 
 ```php
@@ -1689,6 +1937,8 @@ foreach ($tasks as $task) {
 echo "all tasks completed\n";
 ```
 
+**Explication :** `foreach` joue ici le même rôle que `range` en Go : il fournit la clé ou l’index et la valeur courante. Le tableau PHP peut mélanger usages de liste et de dictionnaire, alors que Go distingue slices et maps. Cette séparation rend l’intention et les types accessibles au compilateur.
+
 ### PHP équivalent conceptuel avec Symfony Messenger
 
 ```php
@@ -1701,6 +1951,8 @@ echo "all tasks completed\n";
 //
 // Les workers traitent ensuite les messages en parallèle.
 ```
+
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent conceptuel avec Symfony Messenger » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
 
 ---
 
@@ -1728,6 +1980,8 @@ func main() {
 }
 ```
 
+**Explication :** Le channel transporte des valeurs typées entre goroutines et synchronise leur progression. Un envoi sur un channel non bufferisé attend qu’un récepteur soit prêt ; avec un buffer, l’envoi peut avancer tant qu’une place reste disponible. Le propriétaire de la production doit fermer le channel lorsqu’aucune autre valeur ne sera envoyée.
+
 ### PHP équivalent approximatif
 
 ```php
@@ -1745,6 +1999,8 @@ $message = "hello";
 echo $message . PHP_EOL;
 ```
 
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent approximatif » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
+
 ---
 
 ## 7.4 Channel avec buffer
@@ -1761,6 +2017,8 @@ fmt.Println(<-messages)
 fmt.Println(<-messages)
 ```
 
+**Explication :** Le channel transporte des valeurs typées entre goroutines et synchronise leur progression. Un envoi sur un channel non bufferisé attend qu’un récepteur soit prêt ; avec un buffer, l’envoi peut avancer tant qu’une place reste disponible. Le propriétaire de la production doit fermer le channel lorsqu’aucune autre valeur ne sera envoyée.
+
 ### PHP équivalent conceptuel
 
 ```php
@@ -1774,6 +2032,8 @@ $messages[] = "world";
 echo array_shift($messages) . PHP_EOL;
 echo array_shift($messages) . PHP_EOL;
 ```
+
+**Explication :** Le tableau PHP est utilisé ici comme collection flexible. Selon ses clés, il peut représenter une liste, une map ou une structure ad hoc ; Go emploie des types distincts pour chacun de ces rôles. Cette contrainte supplémentaire évite qu’une collection change accidentellement de forme au cours du programme.
 
 ---
 
@@ -1814,6 +2074,8 @@ func main() {
 }
 ```
 
+**Explication :** Le `WaitGroup` compte les tâches concurrentes encore actives. Chaque `Add` annonce une goroutine, chaque `Done` signale sa fin et `Wait` bloque jusqu’à ce que le compteur revienne à zéro. Placez généralement `Done` dans un `defer` pour garantir son exécution même si la goroutine quitte plus tôt.
+
 ### PHP équivalent conceptuel
 
 ```php
@@ -1827,6 +2089,8 @@ foreach ($jobs as $job) {
     echo "processed job " . $job . PHP_EOL;
 }
 ```
+
+**Explication :** `foreach` joue ici le même rôle que `range` en Go : il fournit la clé ou l’index et la valeur courante. Le tableau PHP peut mélanger usages de liste et de dictionnaire, alors que Go distingue slices et maps. Cette séparation rend l’intention et les types accessibles au compilateur.
 
 ---
 
@@ -1869,6 +2133,8 @@ func fetchRemoteData(ctx context.Context) error {
 }
 ```
 
+**Explication :** Le contexte propage ici une échéance et un signal d’annulation. Toutes les opérations lentes appelées en dessous — HTTP, base de données ou attente sur channel — devraient accepter ce contexte et s’arrêter lorsque `ctx.Done()` est fermé. L’appel à `cancel` libère les ressources associées, même si l’opération termine avant le timeout.
+
 ### PHP équivalent conceptuel avec timeout HTTP
 
 ```php
@@ -1881,6 +2147,8 @@ func fetchRemoteData(ctx context.Context) error {
 //
 // En PHP, on gère souvent le timeout au niveau du client HTTP.
 ```
+
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
 
 ---
 
@@ -1900,6 +2168,8 @@ for i := 0; i < 1000; i++ {
 time.Sleep(time.Second)
 fmt.Println(counter)
 ```
+
+**Explication :** Le mot-clé `go` démarre la fonction dans une goroutine et rend immédiatement la main à l’appelant. Le résultat n’est pas récupéré automatiquement : il faut utiliser un channel, un `WaitGroup` ou une abstraction de plus haut niveau pour coordonner la fin et les erreurs. Une goroutine ne doit pas survivre sans limite ni ignorer l’annulation de la requête.
 
 Ce code peut produire un résultat incorrect, car plusieurs goroutines modifient `counter` en même temps.
 
@@ -1937,6 +2207,8 @@ func main() {
 }
 ```
 
+**Explication :** Le `WaitGroup` compte les tâches concurrentes encore actives. Chaque `Add` annonce une goroutine, chaque `Done` signale sa fin et `Wait` bloque jusqu’à ce que le compteur revienne à zéro. Placez généralement `Done` dans un `defer` pour garantir son exécution même si la goroutine quitte plus tôt.
+
 ### PHP équivalent conceptuel
 
 En PHP classique, les requêtes sont souvent isolées. Les race conditions apparaissent plutôt avec :
@@ -1955,9 +2227,19 @@ En PHP classique, les requêtes sont souvent isolées. Les race conditions appar
 // $connection->commit();
 ```
 
+**Explication :** Cet équivalent PHP permet de rattacher « PHP équivalent conceptuel » à une syntaxe connue. Il faut comparer l’intention plutôt que traduire ligne par ligne : Go privilégie des types explicites, des dépendances visibles et des erreurs retournées, là où PHP s’appuie souvent sur le runtime et les exceptions.
+
 ---
 
 # 8. Clean architecture pour un BFF
+
+Une architecture propre sépare les règles métier des détails techniques. Le domaine représente les concepts importants, le usecase orchestre une action, le repository abstrait l’accès aux données et le handler traduit le protocole HTTP vers l’application.
+
+Cette séparation facilite les tests et limite l’impact des changements. Remplacer un repository mémoire par PostgreSQL ne devrait pas obliger à réécrire le usecase. Modifier le format JSON d’une réponse ne devrait pas contaminer le modèle métier.
+
+Il ne faut cependant pas créer une couche ou une interface pour chaque fonction. Une abstraction est utile lorsqu’elle protège une règle, permet de remplacer une dépendance ou clarifie une frontière. Sans bénéfice concret, elle ajoute seulement de la navigation.
+
+Le flux typique d’une requête est : requête HTTP → validation du format → usecase → repository ou service distant → domaine → mapper → réponse HTTP.
 
 ## 8.1 Rôle du BFF
 
@@ -1986,6 +2268,8 @@ handler HTTP
   └── écrit le JSON
 ```
 
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « 8.2 Principe de séparation ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
+
 Meilleur pattern :
 
 ```text
@@ -1993,6 +2277,8 @@ handler HTTP
   └── usecase
       └── repository/client externe
 ```
+
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « 8.2 Principe de séparation ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
 
 ---
 
@@ -2015,6 +2301,8 @@ product-api/
         └── usecase_test.go
 ```
 
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « 8.3 Structure recommandée ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
+
 ### PHP équivalent Symfony
 
 ```text
@@ -2032,6 +2320,8 @@ src/
     └── Product/
         └── GetProductUseCaseTest.php
 ```
+
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « PHP équivalent Symfony ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
 
 ---
 
@@ -2054,6 +2344,8 @@ func (p Product) IsAvailable() bool {
     return p.Stock > 0
 }
 ```
+
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go : domain.go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
 
 ### PHP équivalent
 
@@ -2079,6 +2371,8 @@ final class Product
 }
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 ## 8.5 Repository interface
@@ -2096,6 +2390,8 @@ type Repository interface {
     Save(ctx context.Context, product Product) error
 }
 ```
+
+**Explication :** Cette interface décrit uniquement les opérations dont l’appelant a besoin. En Go, un type satisfait l’interface implicitement dès qu’il possède les bonnes méthodes : le domaine n’a donc pas à dépendre d’une implémentation mémoire, SQL ou HTTP. Gardez l’interface petite et définissez-la près du code qui la consomme.
 
 ### PHP équivalent
 
@@ -2116,6 +2412,8 @@ interface ProductRepositoryInterface
     public function save(Product $product): void;
 }
 ```
+
+**Explication :** Cette fonction PHP sert de repère pour la syntaxe Go présentée juste avant. Les types de paramètres et de retour peuvent être déclarés en PHP, mais ils sont systématiques et vérifiés à la compilation en Go. Comparez surtout le contrat de la fonction et la manière dont chaque langage représente les erreurs.
 
 ---
 
@@ -2157,6 +2455,8 @@ func (uc UseCase) GetProduct(ctx context.Context, id string) (Product, error) {
 }
 ```
 
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go : usecase.go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
+
 ### PHP équivalent
 
 ```php
@@ -2184,6 +2484,8 @@ final class GetProductUseCase
     }
 }
 ```
+
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
 
 ---
 
@@ -2248,6 +2550,8 @@ func (r *MemoryRepository) Save(ctx context.Context, product Product) error {
 }
 ```
 
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go : memory_repository.go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
+
 ### PHP équivalent
 
 ```php
@@ -2295,9 +2599,17 @@ final class MemoryProductRepository implements ProductRepositoryInterface
 }
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 # 9. Création et utilisation des endpoints HTTP
+
+Un endpoint est la porte d’entrée HTTP de l’application. Il interprète la méthode, le chemin, les paramètres, les en-têtes et le corps de la requête, puis construit une réponse avec un statut, des en-têtes et éventuellement un document JSON.
+
+Le handler doit rester fin. Il décode les données entrantes, vérifie leur format, appelle le usecase et transforme le résultat en réponse. Les règles métier ne doivent pas dépendre de `http.ResponseWriter` ou de `http.Request`, afin de rester testables sans serveur HTTP.
+
+Une API robuste traite aussi les chemins d’erreur : JSON invalide, paramètre absent, validation refusée, ressource inconnue, timeout et erreur interne. Le client doit recevoir un statut cohérent et un message exploitable, sans détails techniques sensibles.
 
 ## 9.1 Endpoint simple en Go avec `net/http`
 
@@ -2329,11 +2641,15 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+**Explication :** Le serveur associe ici une route à un handler, puis écoute les connexions HTTP. Chaque requête est traitée concurremment par `net/http`, même si aucune goroutine n’est créée explicitement dans le handler. Les dépendances partagées doivent donc être sûres pour un accès concurrent et le serveur doit gérer proprement ses erreurs de démarrage.
+
 Test :
 
 ```bash
 curl http://localhost:8080/health
 ```
+
+**Explication :** Cette requête `curl` permet de vérifier manuellement le contrat HTTP sans frontend. Les options indiquent la méthode, les en-têtes et éventuellement le corps JSON envoyé au serveur. Ce contrôle rapide complète les tests automatisés, mais ne les remplace pas car il ne vérifie pas durablement les régressions.
 
 ### PHP équivalent natif
 
@@ -2353,6 +2669,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_SERVER['REQUEST_URI'] === '/health
 http_response_code(404);
 echo 'Not found';
 ```
+
+**Explication :** Le code PHP transforme le JSON en tableau ou objet dynamique, puis construit la réponse. Cette souplesse réduit le code initial mais reporte plusieurs erreurs de forme à l’exécution. En Go, une struct de requête ou de réponse documente les champs attendus et permet au compilateur de vérifier leur utilisation.
 
 ### PHP équivalent Symfony
 
@@ -2375,6 +2693,8 @@ final class HealthController
     }
 }
 ```
+
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
 
 ---
 
@@ -2404,6 +2724,8 @@ func getProductHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+**Explication :** Le serveur associe ici une route à un handler, puis écoute les connexions HTTP. Chaque requête est traitée concurremment par `net/http`, même si aucune goroutine n’est créée explicitement dans le handler. Les dépendances partagées doivent donc être sûres pour un accès concurrent et le serveur doit gérer proprement ses erreurs de démarrage.
+
 ### PHP équivalent Symfony
 
 ```php
@@ -2426,6 +2748,8 @@ final class ProductController
     }
 }
 ```
+
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
 
 ---
 
@@ -2450,11 +2774,15 @@ func listProductsHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+**Explication :** Le package `encoding/json` convertit le corps HTTP vers une struct typée ou encode une valeur dans la réponse. Il faut traiter l’erreur de décodage avant d’appeler le métier et définir `Content-Type: application/json` avant d’écrire le statut. Pour une API stricte, limitez aussi la taille du body et refusez les champs inconnus.
+
 URL :
 
 ```text
 GET /products?search=keyboard&limit=10
 ```
+
+**Explication :** Ce bloc représente le contrat HTTP utilisé dans « Go » : la méthode exprime l’intention et le chemin identifie la ressource. Il doit rester stable pour le frontend, même si l’implémentation interne change. Les entrées, réponses et erreurs associées doivent être documentées et testées avec le même niveau de précision.
 
 ### PHP équivalent
 
@@ -2472,6 +2800,8 @@ echo json_encode([
 ]);
 ```
 
+**Explication :** Le code PHP transforme le JSON en tableau ou objet dynamique, puis construit la réponse. Cette souplesse réduit le code initial mais reporte plusieurs erreurs de forme à l’exécution. En Go, une struct de requête ou de réponse documente les champs attendus et permet au compilateur de vérifier leur utilisation.
+
 ### PHP équivalent Symfony
 
 ```php
@@ -2488,6 +2818,8 @@ public function listProducts(Request $request): JsonResponse
     ]);
 }
 ```
+
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
 
 ---
 
@@ -2524,6 +2856,8 @@ func createProductHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+**Explication :** Le package `encoding/json` convertit le corps HTTP vers une struct typée ou encode une valeur dans la réponse. Il faut traiter l’erreur de décodage avant d’appeler le métier et définir `Content-Type: application/json` avant d’écrire le statut. Pour une API stricte, limitez aussi la taille du body et refusez les champs inconnus.
+
 ### PHP équivalent natif
 
 ```php
@@ -2544,6 +2878,8 @@ header('Content-Type: application/json');
 echo json_encode($response, JSON_THROW_ON_ERROR);
 ```
 
+**Explication :** Le code PHP transforme le JSON en tableau ou objet dynamique, puis construit la réponse. Cette souplesse réduit le code initial mais reporte plusieurs erreurs de forme à l’exécution. En Go, une struct de requête ou de réponse documente les champs attendus et permet au compilateur de vérifier leur utilisation.
+
 ### PHP équivalent Symfony
 
 ```php
@@ -2561,6 +2897,8 @@ public function createProduct(Request $request): JsonResponse
     ], 201);
 }
 ```
+
+**Explication :** Le code PHP transforme le JSON en tableau ou objet dynamique, puis construit la réponse. Cette souplesse réduit le code initial mais reporte plusieurs erreurs de forme à l’exécution. En Go, une struct de requête ou de réponse documente les champs attendus et permet au compilateur de vérifier leur utilisation.
 
 ---
 
@@ -2580,6 +2918,8 @@ func writeJSON(w http.ResponseWriter, statusCode int, payload any) {
 }
 ```
 
+**Explication :** Le package `encoding/json` convertit le corps HTTP vers une struct typée ou encode une valeur dans la réponse. Il faut traiter l’erreur de décodage avant d’appeler le métier et définir `Content-Type: application/json` avant d’écrire le statut. Pour une API stricte, limitez aussi la taille du body et refusez les champs inconnus.
+
 Utilisation :
 
 ```go
@@ -2587,6 +2927,8 @@ writeJSON(w, http.StatusOK, map[string]string{
     "status": "ok",
 })
 ```
+
+**Explication :** La map associe des clés et des valeurs de types fixes. Une lecture peut retourner la valeur zéro même si la clé n’existe pas ; la forme `value, ok := m[key]` permet de distinguer ces deux cas. Une map n’est pas sûre pour des écritures concurrentes et son ordre d’itération n’est pas garanti.
 
 ### PHP équivalent
 
@@ -2601,6 +2943,8 @@ function writeJson(array $payload, int $statusCode = 200): void
     echo json_encode($payload, JSON_THROW_ON_ERROR);
 }
 ```
+
+**Explication :** Le code PHP transforme le JSON en tableau ou objet dynamique, puis construit la réponse. Cette souplesse réduit le code initial mais reporte plusieurs erreurs de forme à l’exécution. En Go, une struct de requête ou de réponse documente les champs attendus et permet au compilateur de vérifier leur utilisation.
 
 ---
 
@@ -2633,6 +2977,8 @@ func getProductHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+**Explication :** La map associe des clés et des valeurs de types fixes. Une lecture peut retourner la valeur zéro même si la clé n’existe pas ; la forme `value, ok := m[key]` permet de distinguer ces deux cas. Une map n’est pas sûre pour des écritures concurrentes et son ordre d’itération n’est pas garanti.
+
 ### PHP équivalent Symfony
 
 ```php
@@ -2659,9 +3005,17 @@ public function getProduct(string $id): JsonResponse
 }
 ```
 
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
+
 ---
 
 # 10. Décisions techniques pour les endpoints
+
+Créer une route ne consiste pas seulement à choisir une URL. Chaque endpoint définit un contrat : données acceptées, règles de validation, statut de succès, structure des erreurs, délais et comportement lorsque les dépendances sont indisponibles.
+
+Ces décisions doivent rester cohérentes dans toute l’API. Deux erreurs de validation comparables devraient avoir la même structure, et une ressource absente devrait produire le même type de réponse sur toutes les routes.
+
+Dans un BFF, il faut également décider comment réagir à l’échec d’un service distant. Selon le besoin produit, l’application peut échouer complètement, retourner une réponse partielle, utiliser une valeur en cache ou appliquer un timeout plus court. Ce choix fait partie du contrat fonctionnel.
 
 ## 10.1 Choisir la méthode HTTP
 
@@ -2688,6 +3042,8 @@ Le front a besoin d’afficher la fiche produit.
 GET /products/{id}
 ```
 
+**Explication :** Ce bloc représente le contrat HTTP utilisé dans « Route » : la méthode exprime l’intention et le chemin identifie la ressource. Il doit rester stable pour le frontend, même si l’implémentation interne change. Les entrées, réponses et erreurs associées doivent être documentées et testées avec le même niveau de précision.
+
 ### Réponse succès
 
 ```json
@@ -2700,6 +3056,8 @@ GET /products/{id}
 }
 ```
 
+**Explication :** Ce JSON illustre le contrat public de « Réponse succès ». Les noms et types des champs font partie de l’API consommée par le frontend ; ils ne doivent donc pas dépendre directement de la structure interne du domaine. Un DTO et un mapper permettent de faire évoluer ces deux modèles séparément.
+
 ### Erreur produit introuvable
 
 ```json
@@ -2708,11 +3066,15 @@ GET /products/{id}
 }
 ```
 
+**Explication :** Cette réponse JSON fournit au client une erreur structurée plutôt qu’un texte libre. Le champ `code` est destiné au traitement automatisé côté frontend, tandis que `message` reste lisible par un humain. Le statut HTTP doit porter la catégorie générale de l’échec et le corps doit apporter les détails applicatifs.
+
 Code HTTP :
 
 ```text
 404 Not Found
 ```
+
+**Explication :** Ce bloc synthétise la forme attendue pour « Erreur produit introuvable ». Il sert de représentation intermédiaire avant l’implémentation : vérifiez que chaque élément a une responsabilité claire et qu’aucune dépendance technique ne remonte vers le domaine.
 
 ---
 
@@ -2739,6 +3101,8 @@ func MapProductToResponse(product Product) ProductResponse {
     }
 }
 ```
+
+**Explication :** Cette struct joue le rôle de contrat JSON grâce aux tags placés après chaque champ. Les champs exportés commencent par une majuscule afin que `encoding/json` puisse les lire ou les écrire. Séparez les DTO HTTP des structures du domaine lorsque leurs contraintes ou leur rythme d’évolution diffèrent.
 
 ### PHP équivalent
 
@@ -2768,6 +3132,8 @@ function mapProductToResponse(Product $product): ProductResponse
 }
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 ## 10.4 Pourquoi ne pas exposer directement le modèle domaine ?
@@ -2777,6 +3143,8 @@ function mapProductToResponse(Product $product): ProductResponse
 ```go
 json.NewEncoder(w).Encode(product)
 ```
+
+**Explication :** Le package `encoding/json` convertit le corps HTTP vers une struct typée ou encode une valeur dans la réponse. Il faut traiter l’erreur de décodage avant d’appeler le métier et définir `Content-Type: application/json` avant d’écrire le statut. Pour une API stricte, limitez aussi la taille du body et refusez les champs inconnus.
 
 Problème :
 
@@ -2792,6 +3160,8 @@ response := MapProductToResponse(product)
 json.NewEncoder(w).Encode(response)
 ```
 
+**Explication :** Le package `encoding/json` convertit le corps HTTP vers une struct typée ou encode une valeur dans la réponse. Il faut traiter l’erreur de décodage avant d’appeler le métier et définir `Content-Type: application/json` avant d’écrire le statut. Pour une API stricte, limitez aussi la taille du body et refusez les champs inconnus.
+
 ### PHP équivalent
 
 ```php
@@ -2803,6 +3173,8 @@ return new JsonResponse($product);
 // Mieux :
 return new JsonResponse($this->productPresenter->present($product));
 ```
+
+**Explication :** Symfony prend ici en charge le routage et une partie de la construction de la réponse HTTP. Avec `net/http`, Go expose des primitives plus basses et rend l’enchaînement plus explicite. Le handler doit néanmoins rester mince dans les deux écosystèmes : décoder, valider la forme, appeler le cas d’usage et traduire le résultat en HTTP.
 
 ---
 
@@ -2865,6 +3237,8 @@ func (r CreateProductRequest) Validate() error {
 }
 ```
 
+**Explication :** Cette struct joue le rôle de contrat JSON grâce aux tags placés après chaque champ. Les champs exportés commencent par une majuscule afin que `encoding/json` puisse les lire ou les écrire. Séparez les DTO HTTP des structures du domaine lorsque leurs contraintes ou leur rythme d’évolution diffèrent.
+
 ### PHP équivalent
 
 ```php
@@ -2895,9 +3269,19 @@ final class CreateProductRequest
 }
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 # 11. Tests unitaires Go et équivalents PHP
+
+Un test unitaire vérifie un comportement précis avec des dépendances contrôlées. Le package `testing` est intégré au langage : les fonctions de test commencent par `Test`, reçoivent un `*testing.T` et sont lancées avec `go test`.
+
+Les table-driven tests regroupent plusieurs scénarios autour du même comportement. Chaque cas décrit les entrées, le résultat attendu et, si nécessaire, l’erreur attendue. Cette structure est particulièrement utile pour les validations et les fonctions comportant plusieurs cas limites.
+
+Pour tester un usecase sans base de données, on lui injecte une fausse implémentation du repository. Le test vérifie alors la règle métier sans dépendre du réseau, du stockage ou du protocole HTTP.
+
+Un bon test décrit un résultat observable plutôt que l’implémentation ligne par ligne. Le code peut ainsi être refactoré sans rendre toute la suite de tests obsolète.
 
 ## 11.1 Test simple
 
@@ -2923,11 +3307,15 @@ func TestAdd(t *testing.T) {
 }
 ```
 
+**Explication :** Go déduit les types à partir des valeurs tout en conservant un typage statique. `:=` déclare au moins une nouvelle variable dans la portée courante, tandis que `var` convient aux déclarations explicites, aux valeurs zéro et au niveau package. Après la déclaration, une variable ne peut pas recevoir une valeur d’un autre type.
+
 Commande :
 
 ```bash
 go test
 ```
+
+**Explication :** Cette commande compile puis exécute les tests Go. Le motif `./...` inclut le package courant et tous ses sous-packages, ce qui convient à la validation complète d’un module. Une erreur de compilation interrompt les tests : le typage fait donc partie du premier niveau de vérification.
 
 ### PHP équivalent avec PHPUnit
 
@@ -2952,11 +3340,15 @@ function add(int $a, int $b): int
 }
 ```
 
+**Explication :** Ce test PHP exprime le même scénario que le test Go voisin : préparation des données, exécution puis assertion sur le résultat. PHPUnit fournit davantage de méthodes d’assertion prêtes à l’emploi, tandis que le package `testing` de Go reste volontairement minimal. Dans les deux cas, un test doit vérifier un comportement observable plutôt qu’un détail interne.
+
 Commande :
 
 ```bash
 vendor/bin/phpunit
 ```
+
+**Explication :** Cette commande sert à exécuter ou vérifier l’étape décrite dans « PHP équivalent avec PHPUnit ». Lancez-la depuis la racine du projet afin que Go ou PHP retrouve sa configuration et ses dépendances. Observez la sortie et le code de retour : une commande silencieuse avec un statut nul signifie généralement que l’étape a réussi.
 
 ---
 
@@ -3006,6 +3398,8 @@ func TestAddWithCases(t *testing.T) {
 }
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ### PHP équivalent avec data provider
 
 ```php
@@ -3033,6 +3427,8 @@ final class CalculatorTest extends TestCase
 }
 ```
 
+**Explication :** Ce test PHP exprime le même scénario que le test Go voisin : préparation des données, exécution puis assertion sur le résultat. PHPUnit fournit davantage de méthodes d’assertion prêtes à l’emploi, tandis que le package `testing` de Go reste volontairement minimal. Dans les deux cas, un test doit vérifier un comportement observable plutôt qu’un détail interne.
+
 ---
 
 ## 11.3 Tester une erreur
@@ -3056,6 +3452,8 @@ func TestDivideByZero(t *testing.T) {
     }
 }
 ```
+
+**Explication :** L’erreur est une valeur retournée avec le résultat normal. L’appelant la vérifie immédiatement, ajoute éventuellement du contexte avec `fmt.Errorf(... %w ...)`, puis décide de la traiter ou de la propager. Ne masquez pas l’erreur : son message et sa cause sont essentiels pour le diagnostic et pour la traduction vers une réponse HTTP adaptée.
 
 ### PHP équivalent
 
@@ -3081,6 +3479,8 @@ final class DivideTest extends TestCase
     }
 }
 ```
+
+**Explication :** PHP signale ici l’échec avec une exception qui interrompt le flux normal jusqu’à ce qu’un `catch` la traite. Go préfère généralement retourner explicitement une valeur `error` et oblige chaque appelant à décider quoi en faire. L’équivalence est donc fonctionnelle, mais le chemin de contrôle reste différent.
 
 ---
 
@@ -3133,6 +3533,8 @@ func TestGetProduct(t *testing.T) {
 }
 ```
 
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « Go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
+
 ### PHP équivalent
 
 ```php
@@ -3176,6 +3578,8 @@ final class GetProductUseCaseTest extends TestCase
 }
 ```
 
+**Explication :** Cette version PHP utilise une classe et la promotion des propriétés du constructeur pour représenter les mêmes données que l’exemple Go. En PHP, l’objet conserve une identité et est manipulé indirectement ; une struct Go est une valeur copiée par défaut. Cette différence devient importante lorsqu’une fonction ou une méthode doit modifier l’instance d’origine.
+
 ---
 
 ## 11.5 Tester un handler HTTP
@@ -3196,6 +3600,8 @@ func TestHealthHandler(t *testing.T) {
     }
 }
 ```
+
+**Explication :** `httptest` exécute le handler en mémoire avec une requête et un enregistreur de réponse, sans ouvrir de port réseau. Le test vérifie ainsi la traduction HTTP — statut, en-têtes et corps — tout en restant rapide et déterministe. La logique métier complexe doit être testée séparément au niveau du usecase.
 
 ### PHP équivalent Symfony WebTestCase
 
@@ -3218,9 +3624,21 @@ final class HealthControllerTest extends WebTestCase
 }
 ```
 
+**Explication :** Ce test PHP exprime le même scénario que le test Go voisin : préparation des données, exécution puis assertion sur le résultat. PHPUnit fournit davantage de méthodes d’assertion prêtes à l’emploi, tandis que le package `testing` de Go reste volontairement minimal. Dans les deux cas, un test doit vérifier un comportement observable plutôt qu’un détail interne.
+
 ---
 
 # 12. Projet fil rouge : mini BFF Products API
+
+Ce projet rassemble les notions précédentes dans une application exécutable. Il montre comment les packages, interfaces, handlers, usecases, repositories, mappers et tests collaborent dans un cas concret.
+
+La structure proposée est une base pédagogique, pas une architecture universelle. Chaque fichier doit répondre à un besoin identifiable. Si une couche n’apporte aucune séparation ou testabilité dans un petit projet réel, elle peut être simplifiée.
+
+La progression recommandée consiste à construire une tranche fonctionnelle après l’autre : endpoint de santé, liste des produits, lecture d’un produit, puis création. À chaque étape, le comportement doit être testé avant d’ajouter la suivante.
+
+Le repository mémoire permet de se concentrer sur les règles sans installer de base de données. Une implémentation PostgreSQL ou un client HTTP pourra ensuite le remplacer derrière la même interface.
+
+Pour comprendre l’ensemble, il faut suivre une requête complète : la route sélectionne le handler, le handler décode l’entrée, le usecase applique les règles, le repository fournit les données, puis le mapper construit la réponse JSON.
 
 ## 12.1 Objectif
 
@@ -3232,6 +3650,8 @@ GET /products
 GET /products/{id}
 POST /products
 ```
+
+**Explication :** Ce bloc représente le contrat HTTP utilisé dans « 12.1 Objectif » : la méthode exprime l’intention et le chemin identifie la ressource. Il doit rester stable pour le frontend, même si l’implémentation interne change. Les entrées, réponses et erreurs associées doivent être documentées et testées avec le même niveau de précision.
 
 Avec :
 
@@ -3264,6 +3684,8 @@ product-api/
         └── usecase_test.go
 ```
 
+**Explication :** Cette arborescence montre la responsabilité de chaque fichier dans « 12.2 Structure complète ». Les dossiers servent à séparer les couches techniques, mais ce sont surtout les packages et leurs dépendances qui imposent l’architecture. En pratique, commencez avec cette structure minimale, puis ajoutez un fichier seulement lorsqu’une responsabilité distincte apparaît.
+
 ---
 
 ## 12.3 `go.mod`
@@ -3273,6 +3695,8 @@ module example.com/product-api
 
 go 1.23
 ```
+
+**Explication :** La directive `module` fixe l’identité du projet et le préfixe de ses imports internes. La directive `go` indique la version de langage minimale attendue par les outils, sans installer ni verrouiller elle-même le compilateur. Les dépendances externes seront ajoutées dans ce fichier et leurs sommes de contrôle seront conservées dans `go.sum`.
 
 ---
 
@@ -3293,6 +3717,8 @@ func (p Product) IsAvailable() bool {
     return p.Stock > 0
 }
 ```
+
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « 12.4 internal/product/domain.go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
 
 ---
 
@@ -3316,6 +3742,8 @@ type CreateProductRequest struct {
     Stock       int     `json:"stock"`
 }
 ```
+
+**Explication :** Cette struct joue le rôle de contrat JSON grâce aux tags placés après chaque champ. Les champs exportés commencent par une majuscule afin que `encoding/json` puisse les lire ou les écrire. Séparez les DTO HTTP des structures du domaine lorsque leurs contraintes ou leur rythme d’évolution diffèrent.
 
 ---
 
@@ -3345,6 +3773,8 @@ func MapProductsToResponse(products []Product) []ProductResponse {
 }
 ```
 
+**Explication :** La slice représente une vue dynamique sur un tableau sous-jacent. `append` peut réutiliser ce stockage ou en allouer un nouveau, d’où la nécessité de récupérer la slice retournée. Lors d’un `range`, Go fournit l’index et une copie de la valeur ; utilisez l’index si vous devez modifier l’élément stocké.
+
 ---
 
 ## 12.7 `internal/product/repository.go`
@@ -3360,6 +3790,8 @@ type Repository interface {
     Save(ctx context.Context, product Product) error
 }
 ```
+
+**Explication :** Cette interface décrit uniquement les opérations dont l’appelant a besoin. En Go, un type satisfait l’interface implicitement dès qu’il possède les bonnes méthodes : le domaine n’a donc pas à dépendre d’une implémentation mémoire, SQL ou HTTP. Gardez l’interface petite et définissez-la près du code qui la consomme.
 
 ---
 
@@ -3428,6 +3860,8 @@ func (uc UseCase) CreateProduct(ctx context.Context, request CreateProductReques
     return newProduct, nil
 }
 ```
+
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « 12.8 internal/product/usecase.go ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
 
 ---
 
@@ -3501,6 +3935,8 @@ func (r *MemoryRepository) Save(ctx context.Context, product Product) error {
     return nil
 }
 ```
+
+**Explication :** Le mutex protège la section critique qui lit ou modifie l’état partagé. Une seule goroutine peut exécuter cette zone à la fois, ce qui supprime la race condition montrée précédemment. La section verrouillée doit rester courte et toujours libérer le verrou, généralement avec `defer mu.Unlock()`.
 
 ---
 
@@ -3597,6 +4033,8 @@ func writeJSON(w http.ResponseWriter, statusCode int, payload any) {
 }
 ```
 
+**Explication :** Le package `encoding/json` convertit le corps HTTP vers une struct typée ou encode une valeur dans la réponse. Il faut traiter l’erreur de décodage avant d’appeler le métier et définir `Content-Type: application/json` avant d’écrire le statut. Pour une API stricte, limitez aussi la taille du body et refusez les champs inconnus.
+
 ---
 
 ## 12.11 `cmd/api/main.go`
@@ -3635,6 +4073,8 @@ func main() {
 }
 ```
 
+**Explication :** Le serveur associe ici une route à un handler, puis écoute les connexions HTTP. Chaque requête est traitée concurremment par `net/http`, même si aucune goroutine n’est créée explicitement dans le handler. Les dépendances partagées doivent donc être sûres pour un accès concurrent et le serveur doit gérer proprement ses erreurs de démarrage.
+
 ---
 
 ## 12.12 Tester avec curl
@@ -3643,13 +4083,19 @@ func main() {
 curl http://localhost:8080/health
 ```
 
+**Explication :** Cette requête `curl` permet de vérifier manuellement le contrat HTTP sans frontend. Les options indiquent la méthode, les en-têtes et éventuellement le corps JSON envoyé au serveur. Ce contrôle rapide complète les tests automatisés, mais ne les remplace pas car il ne vérifie pas durablement les régressions.
+
 ```bash
 curl http://localhost:8080/products
 ```
 
+**Explication :** Cette requête `curl` permet de vérifier manuellement le contrat HTTP sans frontend. Les options indiquent la méthode, les en-têtes et éventuellement le corps JSON envoyé au serveur. Ce contrôle rapide complète les tests automatisés, mais ne les remplace pas car il ne vérifie pas durablement les régressions.
+
 ```bash
 curl http://localhost:8080/products/1
 ```
+
+**Explication :** Cette requête `curl` permet de vérifier manuellement le contrat HTTP sans frontend. Les options indiquent la méthode, les en-têtes et éventuellement le corps JSON envoyé au serveur. Ce contrôle rapide complète les tests automatisés, mais ne les remplace pas car il ne vérifie pas durablement les régressions.
 
 ```bash
 curl -X POST http://localhost:8080/products \
@@ -3661,6 +4107,8 @@ curl -X POST http://localhost:8080/products \
     "stock": 20
   }'
 ```
+
+**Explication :** Cette requête `curl` permet de vérifier manuellement le contrat HTTP sans frontend. Les options indiquent la méthode, les en-têtes et éventuellement le corps JSON envoyé au serveur. Ce contrôle rapide complète les tests automatisés, mais ne les remplace pas car il ne vérifie pas durablement les régressions.
 
 ---
 
@@ -3767,9 +4215,17 @@ func TestCreateProduct(t *testing.T) {
 }
 ```
 
+**Explication :** Cette struct regroupe des champs nommés et typés pour représenter « 12.13 Test du usecase ». Contrairement à un tableau associatif PHP, sa forme est connue à la compilation et tous les accès aux champs sont vérifiés. Une struct est copiée lorsqu’elle est passée par valeur ; utilisez un pointeur seulement si la mutation, l’identité ou le coût de copie le justifie.
+
 ---
 
 # 13. Exercices en ligne et progression
+
+Les exercices doivent être réalisés progressivement, sans recopier immédiatement le projet final. L’objectif est d’apprendre à interpréter les erreurs du compilateur, rechercher dans la documentation, formater le code et vérifier le comportement avec un test.
+
+Pour chaque exercice, commencez par formuler le résultat attendu, écrivez la version minimale qui fonctionne, puis ajoutez au moins un cas d’erreur. Comparez ensuite avec une implémentation PHP afin d’identifier ce que le typage statique et les erreurs explicites changent.
+
+La concurrence vient après les bases, les fonctions et HTTP. Une goroutine ne doit pas être ajoutée uniquement pour rendre le code « plus Go », mais lorsqu’elle représente réellement une tâche indépendante ou qu’elle réduit un temps d’attente mesurable.
 
 ## 13.1 Exercices niveau débutant
 
@@ -3818,6 +4274,8 @@ func TestCreateProduct(t *testing.T) {
 ```bash
 go test -race ./...
 ```
+
+**Explication :** L’option `-race` instrumente le programme pendant les tests afin de détecter des accès concurrents non synchronisés à la même mémoire. Elle consomme davantage de temps et de mémoire qu’un test normal, mais doit être exécutée régulièrement sur tout code utilisant des goroutines ou un état partagé. Un test réussi sans `-race` ne garantit pas l’absence de race condition.
 
 ---
 
@@ -3896,6 +4354,8 @@ GET /orders/{id}
 POST /orders
 ```
 
+**Explication :** Ce bloc représente le contrat HTTP utilisé dans « Exercice final » : la méthode exprime l’intention et le chemin identifie la ressource. Il doit rester stable pour le frontend, même si l’implémentation interne change. Les entrées, réponses et erreurs associées doivent être documentées et testées avec le même niveau de précision.
+
 Avec :
 
 - domaine `Order` ;
@@ -3907,4 +4367,3 @@ Avec :
 - tests unitaires ;
 - gestion d’erreurs ;
 - réponse JSON propre.
-
